@@ -1,7 +1,23 @@
 # Boiler-controller
 
+## Objetivo
 Implementar o controle e a supervisão do sistema descrito em http://www.romulosilvadeoliveira.eng.br/livrotemporeal/Trabalhos/controle-caldeira-2.pdf.
 
+## Dependências
+ - GCC
+ - Java
+ 
+## Execução
+```
+cd ~
+mkdir workspace
+cd workspace
+git clone https://github.com/bruno-szdl/Boiler-controller
+cd Boiler-controller
+sh run.sh
+```
+
+## Simulador da caldeira
 Simulador (http://www.romulosilvadeoliveira.eng.br/livrotemporeal/Trabalhos/aquecedor2008_1.jar) é usado para simular uma unidade de caldeira e é chamado com:
 java -jar aquecedor2008_1.jar <número-porta-escutada>
 
@@ -17,6 +33,9 @@ A caldeira possui instrumentação embutida e aceita os seguintes comandos:
 "anf123.4" define valor de Nf como 123.4
 
 Cuidado com a formatação dos valores em ponto flutuante.
+
+
+## Requisitos do trabalho
 
 Implementar em C no Linux o programa CONTROLADOR, o qual deve incluir as seguintes funcionalidades de controle:
 
@@ -35,14 +54,12 @@ Implementar em C no Linux o programa CONTROLADOR, o qual deve incluir as seguint
 - Armazenagem periódica dos valores lidos de temperatura e armazenagem desses dados
 em arquivo, através de buffer duplo (produtor/consumidor).
 
-
 Outros requisitos:
 - Usar mutex para proteger as variáveis compartilhadas;
 - Tarefas periódicas implementadas com precisão e não com sleep fixo;
 - Período do controlador de temperatura deve ser 50ms;
 - Período do controlador de nível deve ser 70ms;
 - Atualização da tela pode ser com sleep simples de 1 segundo.
-
 
 Alguns aspectos para a composição da nota do trabalho do controlador:
 - Fez no Linux, em C, usando a biblioteca das pthreads ?
