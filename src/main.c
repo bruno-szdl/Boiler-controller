@@ -14,17 +14,13 @@ const float B = 4.0;                       // área da base do recipiente [4 m2]
 const float P = 1000.0;                    // peso específico da água [1000 Kg/m3]
 const float S = 4184.0;                    // calor específico da água [4184 Joule/Kg.Celsius]
 
-float Q = 0;
-float Ni = 0;
-float Na = 0;
-float Nf = 0;
-
 float T_ref = 20;
 float H_ref = 2;
 
+struct params_struct params;
+
 pthread_mutex_t socket_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t console_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 
 //Main
 int main(int argc, char *argv[])
@@ -39,7 +35,7 @@ int main(int argc, char *argv[])
 		exit(FAILURE);
 	}
 
-	int dest_port = atoi( argv[2]);
+	int dest_port = atoi(argv[2]);
 	local_socket = create_local_socket();
 	dest_address = create_dest_address(argv[1], dest_port);
 
@@ -55,10 +51,10 @@ int main(int argc, char *argv[])
 	pthread_t t1, t2, t3, t4, t5;
 
 	pthread_create(&t1, NULL, (void *) getReferenceValues, NULL);
-	pthread_create(&t2, NULL, (void *) printSensorData, NULL);
-	pthread_create(&t3, NULL, (void *) temperatureController, NULL);
-	pthread_create(&t4, NULL, (void *) heightController, NULL);
-	pthread_create(&t5, NULL, (void *) temperatureAlarm, NULL);
+	pthread_create(&t2, NULL, (void *) printSensorData, (void *) &params);
+	pthread_create(&t3, NULL, (void *) temperatureController, (void *) &params);
+	pthread_create(&t4, NULL, (void *) heightController, (void *) &params);
+	pthread_create(&t5, NULL, (void *) temperatureAlarm, (void *) &params);
 
 	pthread_join(t1, NULL);
     pthread_join(t2, NULL);
@@ -84,7 +80,33 @@ void getReferenceValues()
     }
 };
 
-void temperatureController()
+void printSensorData(struct params_struct *params)
+{
+	for (int i = 0; i < 3000; i++){
+		pthread_mutex_lock(&console_mutex);
+		printf("\e[1;1H\e[2J");
+		printf("Sensores\n");
+		printf("\tValor de Ta: %f (ºC)\n", params->Ta);
+		printf("\tValor de T: %f (ºC)\n", params->T);
+		printf("\tValor de Ti: %f (ºC)\n", params->Ti);
+		printf("\tValor de No: %f (kg/s)\n", params->No);
+		printf("\tValor de H: %f (m)\n\n", params->H);
+		printf("Atuadores\n");
+		printf("\tValor de Q: %f (J/s)\n", params->Q);
+		printf("\tValor de Ni: %f (kg/s)\n", params->Ni);
+		printf("\tValor de Na: %f (kg/s)\n", params->Na);
+		printf("\tValor de Nf: %f (kg/s)\n\n", params->Nf);
+		printf("Os valores atuais de referência são\n");
+		printf("\tT_ref: %f (ºC)\n", T_ref);
+		printf("\tH_ref: %f (m)\n\n", H_ref);
+		printf("Para alterar os valores aperte ENTER\n");
+		pthread_mutex_unlock(&console_mutex);
+
+		sleep(1);
+	};
+};
+
+void temperatureController(struct params_struct *params)
 {
 	const float Kp_T = 5.0;
     const float Ki_T = 0.0;
@@ -102,39 +124,39 @@ void temperatureController()
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_T, NULL);
 		
 		pthread_mutex_lock(&socket_mutex);
-		Ta = read_sensor("sta0", local_socket, dest_address); //lê valor de Ta
-		T = read_sensor("st-0", local_socket, dest_address); //lê valor de T
-		Ti = read_sensor("sti0", local_socket, dest_address); //lê valor de Ti
-		No = read_sensor("sno0", local_socket, dest_address); //lê valor de No
-		H = read_sensor("sh-0", local_socket, dest_address); //lê valor de H
+		params->Ta = read_sensor("sta0", local_socket, dest_address); //lê valor de Ta
+		params->T = read_sensor("st-0", local_socket, dest_address); //lê valor de T
+		params->Ti = read_sensor("sti0", local_socket, dest_address); //lê valor de Ti
+		params->No = read_sensor("sno0", local_socket, dest_address); //lê valor de No
+		params->H = read_sensor("sh-0", local_socket, dest_address); //lê valor de H
 		pthread_mutex_unlock(&socket_mutex);
 
 		// temperature
-		float error_T = T_ref - T;
+		float error_T = T_ref - params->T;
 		integral_T += error_T*periodo_s_T;
 		float output_T = Kp_T*error_T + Ki_T*integral_T;// + Kd_T*derivative_T;
 
-		C = S*P*B*H;
+		C = S*P*B*params->H;
 		if (output_T > 0){
-			Q = output_T*C - Ni*S*(Ti - T) - Na*S*(80-T) - (T-Ta)/R;
-			Na = 0;
-			if (Q >= 1000000.0){
-				Q = 1000000.0;
-				Na = (output_T*C - Ni*S*(Ti - T) - Q - (T-Ta)/R)/(S*(80-T));
-				if (Na >= 10.0){
-					Na = 10.0;
+			params->Q = output_T*C - params->Ni*S*(params->Ti - params->T) - params->Na*S*(80-params->T) - (params->T-params->Ta)/R;
+			params->Na = 0;
+			if (params->Q >= 1000000.0){
+				params->Q = 1000000.0;
+				params->Na = (output_T*C - params->Ni*S*(params->Ti - params->T) - params->Q - (params->T-params->Ta)/R)/(S*(80-params->T));
+				if (params->Na >= 10.0){
+					params->Na = 10.0;
 				}
 			}
 		}else if (output_T < 0){
-			Q = 0;
-			Na = 0;
+			params->Q = 0;
+			params->Na = 0;
 		}else{
-			Q = 0;
-			Na = 0;
+			params->Q = 0;
+			params->Na = 0;
 		};
 		pthread_mutex_lock(&socket_mutex);
-		write_actuator("aq-\0", Q, local_socket, dest_address);
-		write_actuator("ana\0", Na, local_socket, dest_address);
+		write_actuator("aq-\0", params->Q, local_socket, dest_address);
+		write_actuator("ana\0", params->Na, local_socket, dest_address);
 		pthread_mutex_unlock(&socket_mutex);
 
 		tp_T.tv_nsec += periodo_ns_T;
@@ -146,7 +168,7 @@ void temperatureController()
 	}
 };
 
-void heightController()
+void heightController(struct params_struct *params)
 {
     const float Kp_H = 5;
     const float Ki_H = 0.5;
@@ -164,32 +186,32 @@ void heightController()
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_H, NULL);
 		
 		pthread_mutex_lock(&socket_mutex);
-		No = read_sensor("sno0", local_socket, dest_address); //lê valor de No
-		H = read_sensor("sh-0", local_socket, dest_address); //lê valor de H
+		params->No = read_sensor("sno0", local_socket, dest_address); //lê valor de No
+		params->H = read_sensor("sh-0", local_socket, dest_address); //lê valor de H
 		pthread_mutex_unlock(&socket_mutex);
 
 		// temperature
-		float error_H = H_ref - H;
+		float error_H = H_ref - params->H;
 		integral_H += error_H*periodo_s_H;
 		float output_H = Kp_H*error_H + Ki_H*integral_H;// + Kd_H*derivative_H;
 
 		if (output_H > 0){
-			Nf = 0;
-			Ni = output_H*B*P - Na + No + Nf;
-			if (Ni >= 100.0)
-				Ni = 100.0;
+			params->Nf = 0;
+			params->Ni = output_H*B*P - params->Na + params->No + params->Nf;
+			if (params->Ni >= 100.0)
+				params->Ni = 100.0;
 		}else if (output_H < 0){
-			Ni = 0;
-			Nf = -output_H*B*P + Ni + Na + No;
-			if (Nf >= 100.0)
-				Nf = 100.0;
+			params->Ni = 0;
+			params->Nf = -output_H*B*P + params->Ni + params->Na + params->No;
+			if (params->Nf >= 100.0)
+				params->Nf = 100.0;
 		}else{
-			Ni = 0;
-			Nf = 0;
+			params->Ni = 0;
+			params->Nf = 0;
 		};
 		pthread_mutex_lock(&socket_mutex);
-		write_actuator("ani\0", Ni, local_socket, dest_address);
-		write_actuator("anf\0", Nf, local_socket, dest_address);
+		write_actuator("ani\0", params->Ni, local_socket, dest_address);
+		write_actuator("anf\0", params->Nf, local_socket, dest_address);
 		pthread_mutex_unlock(&socket_mutex);
 
 		tp_H.tv_nsec += periodo_ns_H;
@@ -201,33 +223,7 @@ void heightController()
 	}
 };
 
-void printSensorData()
-{
-	for (int i = 0; i < 3000; i++){
-		pthread_mutex_lock(&console_mutex);
-		printf("\e[1;1H\e[2J");
-		printf("Sensores\n");
-		printf("\tValor de Ta: %f (ºC)\n", Ta);
-		printf("\tValor de T: %f (ºC)\n", T);
-		printf("\tValor de Ti: %f (ºC)\n", Ti);
-		printf("\tValor de No: %f (kg/s)\n", No);
-		printf("\tValor de H: %f (m)\n\n", H);
-		printf("Atuadores\n");
-		printf("\tValor de Q: %f (J/s)\n", Q);
-		printf("\tValor de Ni: %f (kg/s)\n", Ni);
-		printf("\tValor de Na: %f (kg/s)\n", Na);
-		printf("\tValor de Nf: %f (kg/s)\n\n", Nf);
-		printf("Os valores atuais de referência são\n");
-		printf("\tT_ref: %f (ºC)\n", T_ref);
-		printf("\tH_ref: %f (m)\n\n", H_ref);
-		printf("Para alterar os valores aperte ENTER\n");
-		pthread_mutex_unlock(&console_mutex);
-
-		sleep(1);
-	};
-};
-
-void temperatureAlarm()
+void temperatureAlarm(struct params_struct *params)
 {
 	int periodo_ns_A = 10000000;
 	float periodo_s_A = 0.01;
@@ -240,13 +236,13 @@ void temperatureAlarm()
 	{
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_A, NULL);
 
-		if(T >= 30.0){
+		if(params->T >= 30.0){
 			pthread_mutex_lock(&console_mutex);
 			printf("\e[1;1H\e[2J");
 			printf("\n\n\n\n\n");
 			printf("---------                 !!! ALARM !!!                 ---------\n");
 			printf("---------    Current Temperature is higher than 30ºC    ---------\n");
-			printf("---------    Current Temperature is %f           ---------\n", T);
+			printf("---------    Current Temperature is %f           ---------\n", params->T);
 			printf("\n\n\n\n\n");
 			pthread_mutex_unlock(&console_mutex);
 		};

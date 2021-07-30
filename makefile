@@ -50,6 +50,7 @@ objFolder:
  
 clean:
 	@ $(RM) ./objects/*.o $(PROJ_NAME) *~
+	@ $(RM) ./src/*.o $(PROJ_NAME) *~
 	@ rmdir objects
  
 .PHONY: all clean
