@@ -44,5 +44,5 @@ void heightController();
 void printSensorData();
 void temperatureAlarm();
 
-int socket_local;
-struct sockaddr_in endereco_destino;
+int local_socket;
+struct sockaddr_in dest_address;

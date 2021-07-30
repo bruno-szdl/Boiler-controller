@@ -14,27 +14,27 @@ char * chopN(char *s, size_t n)
 } 
 
 
-float read_sensor(char *msg, int socket_local, struct sockaddr_in endereco_destino){
+float read_sensor(char *msg, int local_socket, struct sockaddr_in dest_address){
 
-	char msg_recebida[1000];
+	char sensor_value[1000];
 	int nrec;
 
-	envia_mensagem(socket_local, endereco_destino, msg);
+	send_msg(local_socket, dest_address, msg);
 
-    nrec = recebe_mensagem(socket_local, msg_recebida, 1000);
+    nrec = get_msg(local_socket, sensor_value, 1000);
 
-	chopN(msg_recebida, 3);
-    msg_recebida[nrec] = '\0';
+	chopN(sensor_value, 3);
+    sensor_value[nrec] = '\0';
 
 	char *ptr;
-	double msg_recebida_float = strtod(msg_recebida, &ptr);
+	double sensor_value_float = strtod(sensor_value, &ptr);
 
-	return msg_recebida_float;
+	return sensor_value_float;
 }
 
-void send_message(char *sensor_id, float value, int socket_local, struct sockaddr_in endereco_destino){
+void write_actuator(char *sensor_id, float value, int local_socket, struct sockaddr_in dest_address){
 
-	char msg_recebida[1000];
+	char actuator_value[1000];
 	int nrec;
 
 	char char_value[10];
@@ -44,13 +44,13 @@ void send_message(char *sensor_id, float value, int socket_local, struct sockadd
 	strcat(msg, sensor_id);
 	strcat(msg, char_value);
 
-	envia_mensagem(socket_local, endereco_destino, msg);
+	send_msg(local_socket, dest_address, msg);
 
-    nrec = recebe_mensagem(socket_local, msg_recebida, 1000);
+    nrec = get_msg(local_socket, actuator_value, 1000);
 
-	chopN(msg_recebida, 3);
-    msg_recebida[nrec] = '\0';
+	chopN(actuator_value, 3);
+    actuator_value[nrec] = '\0';
 
 	char *ptr;
-	double msg_recebida_float = strtod(msg_recebida, &ptr);
+	double actuator_value_float = strtod(actuator_value, &ptr);
 }

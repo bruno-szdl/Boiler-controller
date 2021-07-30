@@ -36,12 +36,12 @@ int main(int argc, char *argv[])
 		fprintf(stderr,"palavra é a palavra que será enviada ao servidor \n");
 		fprintf(stderr,"exemplo de uso:\n");
 		fprintf(stderr,"   udpcliente baker.das.ufsc.br 1234 \"ola\"\n");
-		exit(FALHA);
+		exit(FAILURE);
 	}
 
-	int porta_destino = atoi( argv[2]);
-	socket_local = cria_socket_local();
-	endereco_destino = cria_endereco_destino(argv[1], porta_destino);
+	int dest_port = atoi( argv[2]);
+	local_socket = create_local_socket();
+	dest_address = create_dest_address(argv[1], dest_port);
 
 	sleep(1);
 
@@ -102,11 +102,11 @@ void temperatureController()
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_T, NULL);
 		
 		pthread_mutex_lock(&socket_mutex);
-		Ta = read_sensor("sta0", socket_local, endereco_destino); //lê valor de Ta
-		T = read_sensor("st-0", socket_local, endereco_destino); //lê valor de T
-		Ti = read_sensor("sti0", socket_local, endereco_destino); //lê valor de Ti
-		No = read_sensor("sno0", socket_local, endereco_destino); //lê valor de No
-		H = read_sensor("sh-0", socket_local, endereco_destino); //lê valor de H
+		Ta = read_sensor("sta0", local_socket, dest_address); //lê valor de Ta
+		T = read_sensor("st-0", local_socket, dest_address); //lê valor de T
+		Ti = read_sensor("sti0", local_socket, dest_address); //lê valor de Ti
+		No = read_sensor("sno0", local_socket, dest_address); //lê valor de No
+		H = read_sensor("sh-0", local_socket, dest_address); //lê valor de H
 		pthread_mutex_unlock(&socket_mutex);
 
 		// temperature
@@ -133,8 +133,8 @@ void temperatureController()
 			Na = 0;
 		};
 		pthread_mutex_lock(&socket_mutex);
-		send_message("aq-\0", Q, socket_local, endereco_destino);
-		send_message("ana\0", Na, socket_local, endereco_destino);
+		write_actuator("aq-\0", Q, local_socket, dest_address);
+		write_actuator("ana\0", Na, local_socket, dest_address);
 		pthread_mutex_unlock(&socket_mutex);
 
 		tp_T.tv_nsec += periodo_ns_T;
@@ -164,8 +164,8 @@ void heightController()
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_H, NULL);
 		
 		pthread_mutex_lock(&socket_mutex);
-		No = read_sensor("sno0", socket_local, endereco_destino); //lê valor de No
-		H = read_sensor("sh-0", socket_local, endereco_destino); //lê valor de H
+		No = read_sensor("sno0", local_socket, dest_address); //lê valor de No
+		H = read_sensor("sh-0", local_socket, dest_address); //lê valor de H
 		pthread_mutex_unlock(&socket_mutex);
 
 		// temperature
@@ -188,8 +188,8 @@ void heightController()
 			Nf = 0;
 		};
 		pthread_mutex_lock(&socket_mutex);
-		send_message("ani\0", Ni, socket_local, endereco_destino);
-		send_message("anf\0", Nf, socket_local, endereco_destino);
+		write_actuator("ani\0", Ni, local_socket, dest_address);
+		write_actuator("anf\0", Nf, local_socket, dest_address);
 		pthread_mutex_unlock(&socket_mutex);
 
 		tp_H.tv_nsec += periodo_ns_H;

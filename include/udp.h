@@ -11,11 +11,11 @@
 #include <stdlib.h>
 #include <netdb.h>
 
-#define FALHA 1
+#define FAILURE 1
 
-int cria_socket_local(void);
-struct sockaddr_in cria_endereco_destino(char *destino, int porta_destino);
-void envia_mensagem(int socket_local, struct sockaddr_in endereco_destino, char *mensagem);
-int recebe_mensagem(int socket_local, char *buffer, int TAM_BUFFER);
+int create_local_socket(void);
+struct sockaddr_in create_dest_address(char *dest, int dest_port);
+void send_msg(int local_socket, struct sockaddr_in dest_address, char *msg);
+int get_msg(int local_socket, char *buffer, int BUFFER_SIZE);
 
 #endif
