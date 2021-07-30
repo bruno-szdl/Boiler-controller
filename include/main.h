@@ -4,18 +4,15 @@
 #include <pthread.h>
 
 //sensors variables
-struct params_struct
-{
-    float Ta;
-    float T;
-    float Ti;
-    float No;
-    float H;
-    float Q;
-    float Ni;
-    float Na;
-    float Nf;
-};
+float Ta;
+float T;
+float Ti;
+float No;
+float H;
+float Q;
+float Ni;
+float Na;
+float Nf;
 
 float T_ref;		                       // temperatura da água no interior do recipiente desejada [Grau Celsius]
 float H_ref;                               // altura da coluna de água dentro do recipiente desejado [m]
