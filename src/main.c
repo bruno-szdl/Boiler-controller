@@ -319,7 +319,13 @@ void temperatureAlarm()
 	while(1){
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_A, NULL);
 
-		// checking temperature
+		// reading temperature
+		//lock
+		pthread_mutex_lock(&socket_mutex);
+		T = read_sensor("st-0", local_socket, dest_address);
+		pthread_mutex_unlock(&socket_mutex);
+		//unlock
+
 		if(T >= 30.0){
 			// print alarm
 			// lock
