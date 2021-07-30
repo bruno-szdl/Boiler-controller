@@ -13,9 +13,9 @@
 
 #define FAILURE 1
 
-int create_local_socket(void);
-struct sockaddr_in create_dest_address(char *dest, int dest_port);
-void send_msg(int local_socket, struct sockaddr_in dest_address, char *msg);
-int get_msg(int local_socket, char *buffer, int BUFFER_SIZE);
+int create_local_socket(void);                                                  // Create local socket
+struct sockaddr_in create_dest_address(char *dest, int dest_port);              // Create destination addres
+void send_msg(int local_socket, struct sockaddr_in dest_address, char *msg);    // Send msg to server
+int get_msg(int local_socket, char *buffer, int BUFFER_SIZE);                   // Receive msg from server
 
 #endif

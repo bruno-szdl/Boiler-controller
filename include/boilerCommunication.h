@@ -3,9 +3,9 @@
 
 #include "udp.h"
 
-char * chopN( char *s, size_t n );                                                              //Get only numbers from msg
-float communicate(char *msg, int local_socket, struct sockaddr_in dest_address);                //communicate with the boiler using UDP functions
-float read_sensor(char *msg, int local_socket, struct sockaddr_in dest_address);                //read sensor values from the boiler
-float actuate(char *sensor_id, float value, int local_socket, struct sockaddr_in dest_address); //send actuator commands to the boiler
+char * getMsgNumbers( char *s);                                                                 // Get only the numbers from msg
+float communicate(char *msg, int local_socket, struct sockaddr_in dest_address);                // Communicate with the boiler using UDP functions (send and receive msg)
+float read_sensor(char *msg, int local_socket, struct sockaddr_in dest_address);                // Read sensor values from the boiler
+float actuate(char *sensor_id, float value, int local_socket, struct sockaddr_in dest_address); // Send actuator commands to the boiler
 
 #endif
