@@ -3,35 +3,49 @@
 #include <unistd.h>
 #include <pthread.h>
 
-//sensors variables
-float Ta;
-float T;
-float Ti;
-float No;
-float H;
-float Q;
-float Ni;
-float Na;
-float Nf;
+//Defining Time constants
+const long int nsec_per_sec;        /* The number of nsecs per sec. */
+const long int usec_per_sec;        /* The number of usecs per sec. */
+const int nsec_per_usec;            /* The number of nsecs per usec. */
 
-float T_ref;		                       // temperatura da água no interior do recipiente desejada [Grau Celsius]
-float H_ref;                               // altura da coluna de água dentro do recipiente desejado [m]
+//Defining ensors variables
+float Ta;                           //Outter temperature [ºC]
+float T;                            //Water temperature [ºC]
+float Ti;                           //Temperature of water entering the boiler [º]
+float No;                           //Water flow leaving the boiler [m3/s]
+float H;                            //Height of water column [m]
 
-//Other variables
-float Qt;                                  // fluxo de calor total fornecido à água do recipiente [Joule/segundo]
-float Qo;                                  // fluxo de calor retirado pela água quente que deixa o recipiente [Joule/segundo]
-float Qi;                                  // fluxo de calor inserido pela água fria que entra no recipiente [Joule/segundo]
-float Qe;                                  // fluxo de calor através do isolamento do recipiente [Joule/segundo]
-float C;                                   // capacitância térmica da água no recipiente [Joule/Celsius]
-float V;                                   // volume de água dentro do recipiente [m3]
+//Defining Actuators variables
+float Q;                            //Heat flux [J/s]
+float Ni;                           //Water flow entering the boiler [º]
+float Na;                           //water flow entering the boiler at 80ºC [ºC]
+float Nf;                           //water leaving the boiler to reservatory [º]
 
-struct timespec t;                         //Hora atual
+//Defining reference values
+float T_ref; //
+float H_ref;
+
+//Defining const variables
+const float R;                      // isolation thermal resistance (2mm wood) [0.001 ºC / (J/s)]
+const float B;                      // boiler's base area [4 m2]
+const float P;                      // water density [1000 kg/m3]
+const float S;                      // water Cp [4184 J/kg.ºC]
+
+//Defining mutexes
+pthread_mutex_t socket_mutex; 
+pthread_mutex_t console_mutex;
+
+//Other variabless
+float C;                            // Capacitance of the water inside the boiler [J/ºC]
+float V;                            // Water volume inside the boiler[m3]
+
+struct timespec t;                  //Current time
 
 int local_socket;
 struct sockaddr_in dest_address;
 
-void getReferenceValues();
-void temperatureController();
-void heightController();
-void printSensorData();
-void temperatureAlarm();
+void getReferenceValues();          //Temperature for entering reference values by console
+void temperatureController();       //Temperature controller
+void heightController();            //Height controller
+void printSensorData();             //Print sensor data on console
+void temperatureAlarm();            //Temperature alarm
