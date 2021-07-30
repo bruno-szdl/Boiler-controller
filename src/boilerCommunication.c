@@ -11,46 +11,39 @@ char * chopN(char *s, size_t n)
         for (char *dst = s; (*dst++ = *src++); );
     }
     return s;
-} 
+};
 
+float communicate(char *msg, int local_socket, struct sockaddr_in dest_address){
 
-float read_sensor(char *msg, int local_socket, struct sockaddr_in dest_address){
-
-	char sensor_value[1000];
+	char value[1000];
 	int nrec;
 
 	send_msg(local_socket, dest_address, msg);
 
-    nrec = get_msg(local_socket, sensor_value, 1000);
+    nrec = get_msg(local_socket, value, 1000);
 
-	chopN(sensor_value, 3);
-    sensor_value[nrec] = '\0';
+	chopN(value, 3);
+    value[nrec] = '\0';
 
 	char *ptr;
-	double sensor_value_float = strtod(sensor_value, &ptr);
+	double value_float = strtod(value, &ptr);
 
-	return sensor_value_float;
-}
+	return value_float;
+};
 
-void write_actuator(char *sensor_id, float value, int local_socket, struct sockaddr_in dest_address){
+float read_sensor(char *msg, int local_socket, struct sockaddr_in dest_address){
 
-	char actuator_value[1000];
-	int nrec;
+	return communicate(msg, local_socket, dest_address);
+};
+
+float actuate(char *sensor_id, float value, int local_socket, struct sockaddr_in dest_address){
 
 	char char_value[10];
-	sprintf (char_value, "%.1f", value);
+	sprintf(char_value, "%.1f", value);
 
 	char msg[100] = "";
 	strcat(msg, sensor_id);
 	strcat(msg, char_value);
 
-	send_msg(local_socket, dest_address, msg);
-
-    nrec = get_msg(local_socket, actuator_value, 1000);
-
-	chopN(actuator_value, 3);
-    actuator_value[nrec] = '\0';
-
-	char *ptr;
-	double actuator_value_float = strtod(actuator_value, &ptr);
-}
+	return communicate(msg, local_socket, dest_address);
+};
