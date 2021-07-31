@@ -2,6 +2,7 @@
 #include "../include/main.h"
 #include "../include/udp.h"
 #include "../include/boilerCommunication.h"
+#include "../include/monitor.h"
 
 // Initializing Time constants
 const long int nsec_per_sec = 1000000000L; /* The number of nsecs per sec. */
@@ -65,14 +66,16 @@ int main(int argc, char *argv[]){
 	getchar();
 
 	// Defining threads
-	pthread_t t1, t2, t3, t4, t5;
+	pthread_t t1, t2, t3, t4, t5, t6, t7;
 
 	// Creating threads
-	pthread_create(&t1, NULL, (void *) getReferenceValues, NULL);
-	pthread_create(&t2, NULL, (void *) printSensorData, NULL);
-	pthread_create(&t3, NULL, (void *) temperatureController, NULL);
-	pthread_create(&t4, NULL, (void *) heightController, NULL);
+	pthread_create(&t1, NULL, (void *) printSensorData, NULL);
+	pthread_create(&t2, NULL, (void *) temperatureController, NULL);
+	pthread_create(&t3, NULL, (void *) heightController, NULL);
+	pthread_create(&t4, NULL, (void *) getReferenceValues, NULL);
 	pthread_create(&t5, NULL, (void *) temperatureAlarm, NULL);
+	pthread_create(&t6, NULL, (void *) sendToBuffer, NULL);
+	pthread_create(&t7, NULL, (void *) writeIntoFile, NULL);
 
 	// Joining threads
 	pthread_join(t1, NULL);
@@ -80,27 +83,8 @@ int main(int argc, char *argv[]){
     pthread_join(t3, NULL);
     pthread_join(t4, NULL);
     pthread_join(t5, NULL);
-}
-
-
-// Let the user enter the desired reference values
-void getReferenceValues()
-{
-	while(1){
-		if (getchar() == '\n') {
-			// lock
-			pthread_mutex_lock(&console_mutex);
-			printf("\e[1;1H\e[2J");
-			printf("Informe a temperatura de referencia (ºC): \n");
-			scanf("%f", &T_ref);
-			printf("Informe o nível de referência (m): \n");
-			scanf("%f", &H_ref);
-			// unlock
-			pthread_mutex_unlock(&console_mutex);
-			getchar();
-			sleep(1);
-		}
-    }
+    pthread_join(t6, NULL);
+    pthread_join(t7, NULL);
 }
 
 
@@ -137,8 +121,7 @@ void printSensorData(){
 
 /* Temperature proportional controller
 with period of 50ms*/
-void temperatureController()
-{
+void temperatureController(){
 
 	// Initializing controller period
 	long int periodo_ns_T = 50000000;
@@ -152,14 +135,14 @@ void temperatureController()
 	while(1){
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_T, NULL);
 		// reading sensors values and assign it to the global variables
-		// lock
+		// lock socket
 		pthread_mutex_lock(&socket_mutex);
 		Ta = read_sensor("sta0", local_socket, dest_address);
 		T = read_sensor("st-0", local_socket, dest_address);
 		Ti = read_sensor("sti0", local_socket, dest_address);
 		No = read_sensor("sno0", local_socket, dest_address);
 		H = read_sensor("sh-0", local_socket, dest_address);
-		// unlock
+		// unlock socket
 		pthread_mutex_unlock(&socket_mutex);
 
 		// Controller
@@ -208,12 +191,12 @@ void temperatureController()
 		}
 		
 		// Sendint actuators commands to the boiler and assigning it to global variables
-		// lock
+		// lock socket
 		pthread_mutex_lock(&socket_mutex);
 		Q = actuate("aq-\0", aux_Q, local_socket, dest_address);
 		Na = actuate("ana\0", aux_Na, local_socket, dest_address);
 		Ni = actuate("ani\0", aux_Ni, local_socket, dest_address);
-		// unlock
+		// unlock socket
 		pthread_mutex_unlock(&socket_mutex);
 
 		// Updating timespec
@@ -229,8 +212,7 @@ void temperatureController()
 
 /* Height proportional controller
 with period of 70ms*/
-void heightController()
-{
+void heightController(){
 
 	// Initializing controller period
 	long int periodo_ns_H = 70000000;
@@ -244,11 +226,11 @@ void heightController()
 	while(1){
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_H, NULL);
 		// reading sensors values and assign it to the global variables
-		// lock
+		// lock socket
 		pthread_mutex_lock(&socket_mutex);
 		No = read_sensor("sno0", local_socket, dest_address);
 		H = read_sensor("sh-0", local_socket, dest_address);
-		// unlock
+		// unlock socket
 		pthread_mutex_unlock(&socket_mutex);
 
 		// Controller
@@ -284,12 +266,12 @@ void heightController()
 		}
 
 		// Sendint actuators commands to the boiler and assigning it to global variables
-		// lock
+		// lock socket
 		pthread_mutex_lock(&socket_mutex);
 		Ni = actuate("ani\0", aux_Ni, local_socket, dest_address);
 		Na = actuate("ana\0", aux_Na, local_socket, dest_address);
 		Nf = actuate("anf\0", aux_Nf, local_socket, dest_address);
-		// unlock
+		// unlock socket
 		pthread_mutex_unlock(&socket_mutex);
 
 		// Updating timespec
@@ -300,6 +282,27 @@ void heightController()
 			tp_H.tv_sec++;
 		}
 	}
+}
+
+
+// Let the user enter the desired reference values
+void getReferenceValues(){
+
+	while(1){
+		if (getchar() == '\n') {
+			// lock console
+			pthread_mutex_lock(&console_mutex);
+			printf("\e[1;1H\e[2J");
+			printf("Informe a temperatura de referencia (ºC): \n");
+			scanf("%f", &T_ref);
+			printf("Informe o nível de referência (m): \n");
+			scanf("%f", &H_ref);
+			// unlock console
+			pthread_mutex_unlock(&console_mutex);
+			getchar();
+			sleep(1);
+		}
+    }
 }
 
 
@@ -320,15 +323,15 @@ void temperatureAlarm()
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_A, NULL);
 
 		// reading temperature
-		//lock
+		//lock socket
 		pthread_mutex_lock(&socket_mutex);
 		T = read_sensor("st-0", local_socket, dest_address);
 		pthread_mutex_unlock(&socket_mutex);
-		//unlock
+		//unlock socket
 
 		if(T >= 30.0){
 			// print alarm
-			// lock
+			// lock console
 			pthread_mutex_lock(&console_mutex);
 			printf("\e[1;1H\e[2J");
 			printf("\n\n\n\n\n");
@@ -336,7 +339,7 @@ void temperatureAlarm()
 			printf("---------    Current Temperature is higher than 30ºC    ---------\n");
 			printf("---------    Current Temperature is %f           ---------\n", T);
 			printf("\n\n\n\n\n");
-			// unlock
+			// unlock console
 			pthread_mutex_unlock(&console_mutex);
 		};
 	
@@ -347,5 +350,97 @@ void temperatureAlarm()
 			tp_A.tv_nsec -= nsec_per_sec;
 			tp_A.tv_sec++;
 		}		
+	}
+}
+
+// // Send values to double buffer approx one time per second
+// void sendToBuffer(){
+	
+// 	//Defining current time in seconds
+// 	time_t seconds;
+
+// 	while(1){
+// 		// Get current time in seconds
+//    		seconds = time(NULL);
+
+// 		insertInBuffer(seconds);
+// 		insertInBuffer(T);
+// 		insertInBuffer(T_ref);
+// 		insertInBuffer(Q);
+// 		insertInBuffer(Ta);
+// 		insertInBuffer(Ti);
+// 		insertInBuffer(H);
+// 		insertInBuffer(H_ref);
+// 		insertInBuffer(Ni);
+// 		insertInBuffer(No);
+// 		insertInBuffer(Nf);
+// 		insertInBuffer(Na);
+
+// 		sleep(1);
+// 	}
+// }
+
+
+// Send values to double buffer approx one time per second
+void sendToBuffer(){
+	
+	//Defining current time in seconds
+	time_t seconds;
+
+	while(1){
+		// Get current time in seconds
+   		seconds = time(NULL);
+
+		insertInBuffer(seconds, T, T_ref, Q, Ta, Ti, H, H_ref, Ni, No, Nf, Na);
+		
+		sleep(1);
+	}
+}
+
+//Write values into log file
+void writeIntoFile(){
+
+	// variables related to the file
+	FILE *fp;
+	char filename[14] = "./log/log.csv";
+
+	//write colunm names
+	fp = fopen(filename, "w");
+	fprintf(fp,"Date (YYYY/MM/DD HH:MM:SS), T (ºC), T_ref (ºC), Q (J/s), Ta (ºC), Ti (ºC), H (m), H_ref (m), Ni (m3/s), No (m3/s), Nf (m3/s), Na (m3/s)\n");
+	fclose(fp);
+
+	// defining some variables which will be used in the while loop
+	double *buffer;
+
+	//variables used to convert seconds into current time
+	struct timespec tp_B;
+	struct tm *tm;
+
+	//char array which will receive date and time string
+	char date_and_time[26]; 
+
+	while(1){
+		// Receive buffer
+		buffer = waitFullBuffer();
+
+		// Write values into file
+		fp = fopen(filename, "a");
+
+		for (int i=0; i<(BUFFER_SIZE/N_VARIABLES); i++){
+
+			// write date and time
+			tp_B.tv_sec = buffer[N_VARIABLES*i];
+			tm = localtime(&tp_B.tv_sec);
+			strftime(date_and_time, 26, "%Y-%m-%d %H:%M:%S", tm);
+			fprintf(fp, "%s, ", date_and_time);
+
+			// write the other values
+			for (int j=1; j<(N_VARIABLES); j++)
+				fprintf(fp, "%f, ", buffer[j+i*N_VARIABLES]);
+
+			//break line
+			fprintf(fp, "\n");
+		}
+		fclose(fp);
 	}
 }
