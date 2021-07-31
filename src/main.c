@@ -353,33 +353,6 @@ void temperatureAlarm()
 	}
 }
 
-// // Send values to double buffer approx one time per second
-// void sendToBuffer(){
-	
-// 	//Defining current time in seconds
-// 	time_t seconds;
-
-// 	while(1){
-// 		// Get current time in seconds
-//    		seconds = time(NULL);
-
-// 		insertInBuffer(seconds);
-// 		insertInBuffer(T);
-// 		insertInBuffer(T_ref);
-// 		insertInBuffer(Q);
-// 		insertInBuffer(Ta);
-// 		insertInBuffer(Ti);
-// 		insertInBuffer(H);
-// 		insertInBuffer(H_ref);
-// 		insertInBuffer(Ni);
-// 		insertInBuffer(No);
-// 		insertInBuffer(Nf);
-// 		insertInBuffer(Na);
-
-// 		sleep(1);
-// 	}
-// }
-
 
 // Send values to double buffer approx one time per second
 void sendToBuffer(){
