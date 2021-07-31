@@ -364,7 +364,7 @@ void sendToBuffer(){
 		// Get current time in seconds
    		seconds = time(NULL);
 
-		insertInBuffer(seconds, T, T_ref, Q, Ta, Ti, H, H_ref, Ni, No, Nf, Na);
+		insertInBuffer(seconds, T, T_ref, H, H_ref, Q, Ta, Ti, Ni, No, Nf, Na);
 		
 		sleep(1);
 	}
@@ -379,7 +379,7 @@ void writeIntoFile(){
 
 	//write colunm names
 	fp = fopen(filename, "w");
-	fprintf(fp,"Date (YYYY/MM/DD HH:MM:SS), T (ºC), T_ref (ºC), Q (J/s), Ta (ºC), Ti (ºC), H (m), H_ref (m), Ni (m3/s), No (m3/s), Nf (m3/s), Na (m3/s)\n");
+	fprintf(fp,"Data (DD//MM/AAAA), Hora (HH:MM:SS), T (ºC), T_ref (ºC), H (m), H_ref (m), Q (J/s), Ta (ºC), Ti (ºC), Ni (m3/s), No (m3/s), Nf (m3/s), Na (m3/s)\n");
 	fclose(fp);
 
 	// defining some variables which will be used in the while loop
@@ -404,7 +404,7 @@ void writeIntoFile(){
 			// write date and time
 			tp_B.tv_sec = buffer[N_VARIABLES*i];
 			tm = localtime(&tp_B.tv_sec);
-			strftime(date_and_time, 26, "%Y-%m-%d %H:%M:%S", tm);
+			strftime(date_and_time, 26, "%d-%m-%Y, %H:%M:%S", tm);
 			fprintf(fp, "%s", date_and_time);
 
 			// write the other values
