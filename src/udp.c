@@ -44,7 +44,8 @@ struct sockaddr_in create_dest_address(char *dest, int dest_port)
 // Send msg to server
 void send_msg(int local_socket, struct sockaddr_in dest_address, char *msg){
 
-	if (sendto(local_socket, msg, strlen(msg)+1, 0, (struct sockaddr *) &dest_address, sizeof(dest_address)) < 0 ){ 
+	if (sendto(local_socket, msg, strlen(msg)+1, 0, (struct sockaddr *) &dest_address,
+			   sizeof(dest_address)) < 0 ){ 
 		perror("sendto");
 		return;
 	}
