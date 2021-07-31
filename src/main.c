@@ -146,7 +146,7 @@ void temperatureController(){
 		pthread_mutex_unlock(&socket_mutex);
 
 		// Controller
-		const float Kp_T = 5.0;				// proportional gain
+		const float Kp_T = 4.0;				// proportional gain
 		float output_T = Kp_T*(T_ref - T);
 
 		// Defining aux variables so it doesn't have to deal with protected variables
