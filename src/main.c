@@ -405,11 +405,11 @@ void writeIntoFile(){
 			tp_B.tv_sec = buffer[N_VARIABLES*i];
 			tm = localtime(&tp_B.tv_sec);
 			strftime(date_and_time, 26, "%Y-%m-%d %H:%M:%S", tm);
-			fprintf(fp, "%s, ", date_and_time);
+			fprintf(fp, "%s", date_and_time);
 
 			// write the other values
 			for (int j=1; j<(N_VARIABLES); j++)
-				fprintf(fp, "%f, ", buffer[j+i*N_VARIABLES]);
+				fprintf(fp, ", %f", buffer[j+i*N_VARIABLES]);
 
 			//break line
 			fprintf(fp, "\n");
