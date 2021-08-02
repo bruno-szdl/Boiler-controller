@@ -159,15 +159,15 @@ void temperatureController(){
 
 		// Calculating actuators values
 		if (output_T > 0.0){
-			aux_Q = output_T*C - Ni*S*(Ti - T) - Na*S*(80-T) - (T-Ta)/R;
 			aux_Na = 0.0;
 			aux_Ni = 0.0;
+			aux_Q = output_T*C - Ni*S*(Ti - T) - Na*S*(80-T) - (T-Ta)/R;
 			if (aux_Q >= 1000000.0){
 				aux_Q = 1000000.0;
-				aux_Na = (output_T*C - aux_Ni*S*(Ti - T) - aux_Q - (T-Ta)/R)/(S*(80-T));
+				aux_Na = (output_T*C - Ni*S*(Ti - T) - aux_Q - (T-Ta)/R)/(S*(80-T));
 				if (aux_Na >= 10.0){
 					aux_Na = 10.0;
-					aux_Ni = (output_T*C - Na*S*(80-T) - (T-Ta)/R - aux_Q)/(S*(Ti - T));
+					aux_Ni = (output_T*C - aux_Na*S*(80-T) - (T-Ta)/R - aux_Q)/(S*(Ti - T));
 					if (aux_Ni >= 100.0){
 						aux_Ni = 100.0;
 					} else if(aux_Ni <= 0.0){
@@ -178,7 +178,7 @@ void temperatureController(){
 		}else if (output_T < 0.0){
 			aux_Q = 0.0;
 			aux_Na = 0.0;
-			aux_Ni = (output_T*C - Na*S*(80-T) - (T-Ta)/R - aux_Q)/(S*(Ti - T));
+			aux_Ni = (output_T*C - Na*S*(80-T) - (T-Ta)/R - Q)/(S*(Ti - T));
 			if (aux_Ni >= 100.0){
 				aux_Ni = 100.0;
 			} else if(aux_Ni <= 0.0){
@@ -234,7 +234,7 @@ void heightController(){
 		pthread_mutex_unlock(&socket_mutex);
 
 		// Controller
-    	const float Kp_H = 5;				// proportional gain
+    	const float Kp_H = 3;				// proportional gain
 		float output_H = Kp_H*(H_ref - H);
 
 		// Defining aux variables so it doesn't have to deal with protected variables
@@ -244,19 +244,19 @@ void heightController(){
 
 		// Calculating actuators values
 		if (output_H > 0){
-			aux_Ni = output_H*B*P - Na + No + Nf;
 			aux_Na = 0;
 			aux_Nf = 0;
+			aux_Ni = output_H*B*P - Na + No + Nf;
 			if (aux_Ni >= 100.0){
 				aux_Ni = 100.0;
-				aux_Na = output_H*B*P - aux_Ni + No + aux_Nf;
+				aux_Na = output_H*B*P - aux_Ni + No + Nf;
 				if (aux_Na >= 10.0)
 					aux_Na = 10.0;
 			}
 		}else if (output_H < 0){
 			aux_Ni = 0;
 			aux_Na = 0;
-			aux_Nf = -output_H*B*P + aux_Ni + Na + No;
+			aux_Nf = -output_H*B*P + Ni + Na + No;
 			if (aux_Nf >= 100.0)
 				aux_Nf = 100.0;
 		}else{
