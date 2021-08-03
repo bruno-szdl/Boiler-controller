@@ -1,5 +1,5 @@
 # Name of the project
-PROJ_NAME=boiler_controller
+PROJ_NAME=controller
  
 # .c files
 C_SOURCE=$(wildcard ./src/*.c)
@@ -28,6 +28,9 @@ RM = rm -rf
 # Compilation and linking
 #
 all: objFolder $(PROJ_NAME)
+
+objFolder:
+	@ mkdir -p objects
  
 $(PROJ_NAME): $(OBJ)
 	@ echo 'Building binary using GCC linker: $@'
@@ -45,8 +48,6 @@ $(PROJ_NAME): $(OBJ)
 	$(CC) $< $(CC_FLAGS) -o $@
 	@ echo ' '
  
-objFolder:
-	@ mkdir -p objects
  
 clean:
 	@ $(RM) ./objects/*.o $(PROJ_NAME) *~
