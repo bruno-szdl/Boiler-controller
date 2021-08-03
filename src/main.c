@@ -6,22 +6,14 @@ const long int nsec_per_sec = 1000000000L; /* The number of nsecs per sec. */
 const long int usec_per_sec = 1000000L;    /* The number of usecs per sec. */
 const int nsec_per_usec = 1000;            /* The number of nsecs per usec. */
 
-// Initializing ensors variables
-float Ta = 0;
-float T = 0;
-float Ti = 0;
-float No = 0;
-float H = 0;
+// Initializing sensors variables
+struct sensors_struct sensors = {0.0, 0.0, 0.0, 0.0, 0.0};
 
 // Initializing Actuators variables
-float Q = 0;
-float Ni = 0;
-float Na = 0;
-float Nf = 0;
+struct actuators_struct actuators = {0.0, 0.0, 0.0, 0.0};
 
 // Initializing reference values
-float T_ref = 20;
-float H_ref = 2;
+struct reference_struct reference = {20.0, 2.0};
 
 // Initializing const variables
 const float R = 0.001;                     // Resistência térmica do isolamento (2mm madeira) [0.001 Grau / (Joule/segundo)]
@@ -50,7 +42,7 @@ int main(int argc, char *argv[])
 	dest_address = create_dest_address(argv[1], dest_port);
 
 	// Get current time
-	clock_gettime(CLOCK_MONOTONIC ,&t);
+	clock_gettime(CLOCK_MONOTONIC, &t);
 
 	// Assure that the boiler simulation has begun before creating threads 
 	printf("\e[1;1H\e[2J");
@@ -81,119 +73,107 @@ int main(int argc, char *argv[])
 }
 
 
-/*  Print the sensor data into the console
-approx one time per second using sleep */
-void printSensorData(){
+/*  Print the sensor data into the console approx one time per second using sleep */
+void printSensorData()
+{
+	// Initializing aux structs so it doesn't have to deal with protected variables
+	struct sensors_struct sensors_data = {0.0, 0.0, 0.0, 0.0, 0.0};
+	struct actuators_struct actuators_data = {0.0, 0.0, 0.0, 0.0};
+	struct reference_struct reference_data = {0.0, 0.0};
 
 	while(1){
-		// lock
-		pthread_mutex_lock(&console_mutex);
-		printf("\e[1;1H\e[2J");
-		printf("Sensores\n");
-		printf("\tValor de Ta: %f (ºC)\n", Ta);
-		printf("\tValor de T: %f (ºC)\n", T);
-		printf("\tValor de Ti: %f (ºC)\n", Ti);
-		printf("\tValor de No: %f (kg/s)\n", No);
-		printf("\tValor de H: %f (m)\n\n", H);
-		printf("Atuadores\n");
-		printf("\tValor de Q: %f (J/s)\n", Q);
-		printf("\tValor de Ni: %f (kg/s)\n", Ni);
-		printf("\tValor de Na: %f (kg/s)\n", Na);
-		printf("\tValor de Nf: %f (kg/s)\n\n", Nf);
-		printf("Os valores atuais de referência são\n");
-		printf("\tT_ref: %f (ºC)\n", T_ref);
-		printf("\tH_ref: %f (m)\n\n", H_ref);
-		printf("Para alterar os valores aperte ENTER\n");
-		// unlock
-		pthread_mutex_unlock(&console_mutex);
-
+		// copy all data to aux structs
+		copyAllData(&sensors, &actuators, &reference, &sensors_data, &actuators_data, &reference_data);
+		// print data into the console
+		consoleData(&sensors_data, &actuators_data, &reference_data);
 		sleep(1);
 	}
 }
 
 
-/* Temperature proportional controller
-with period of 50ms*/
-void temperatureController(){
-
+/* Temperature proportional controller with period of 50ms*/
+void temperatureController()
+{
 	// Initializing controller period
-	long int periodo_ns_T = 50000000;
-	float periodo_s_T = 0.05;
+	long int period_ns_T = 50000000;
+	float period_s_T = 0.05;
 
 	// Defining and initializing controller timespec
 	struct timespec tp_T;
 	tp_T.tv_sec = t.tv_sec + 1;
 	tp_T.tv_nsec = t.tv_nsec;
 
+	// Initializing aux structs so it doesn't have to deal with protected variables
+	struct sensors_struct sensors_data = {0.0, 0.0, 0.0, 0.0, 0.0};
+	struct actuators_struct actuators_data = {0.0, 0.0, 0.0, 0.0};
+	struct reference_struct reference_data = {0.0, 0.0};
+
+	// Define C variable for controller equations
+	float C; 
+
+	// Variables for controller
+	const float Kp_T = 4.0;				// proportional gain
+	float output_T;
+	
 	while(1){
+
+		// Get current time
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_T, NULL);
-		// reading sensors values and assign it to the global variables
-		// lock socket
-		pthread_mutex_lock(&socket_mutex);
-		Ta = read_sensor("sta0", local_socket, dest_address);
-		T = read_sensor("st-0", local_socket, dest_address);
-		Ti = read_sensor("sti0", local_socket, dest_address);
-		No = read_sensor("sno0", local_socket, dest_address);
-		H = read_sensor("sh-0", local_socket, dest_address);
-		// unlock socket
-		pthread_mutex_unlock(&socket_mutex);
 
-		// Controller
-		const float Kp_T = 4.0;				// proportional gain
-		float output_T = Kp_T*(T_ref - T);
+		// copy reference data into aux struct
+		copyReference(&reference_data, &reference);
 
-		// Defining aux variables so it doesn't have to deal with protected variables
-		float aux_Q;
-		float aux_Na;
-		float aux_Ni;
-		
+		// Read sensor data and put it into the aux struct
+		getSensorData(&sensors_data);
+		// Update global sensor struct
+		updateSensorsGlobalVar(&sensors, &sensors_data);
+
+		// gain*error
+		output_T = Kp_T*(reference_data.T_ref - sensors_data.T);
+
 		// Calculating capacitance
-		C = S*P*B*H;
+		C = S*P*B*sensors_data.H;
 
 		// Calculating actuators values
 		if (output_T > 0.0){
-			aux_Na = 0.0;
-			aux_Ni = 0.0;
-			aux_Q = output_T*C - Ni*S*(Ti - T) - Na*S*(80-T) - (T-Ta)/R;
-			if (aux_Q >= 1000000.0){
-				aux_Q = 1000000.0;
-				aux_Na = (output_T*C - Ni*S*(Ti - T) - aux_Q - (T-Ta)/R)/(S*(80-T));
-				if (aux_Na >= 10.0){
-					aux_Na = 10.0;
-					aux_Ni = (output_T*C - aux_Na*S*(80-T) - (T-Ta)/R - aux_Q)/(S*(Ti - T));
-					if (aux_Ni >= 100.0){
-						aux_Ni = 100.0;
-					} else if(aux_Ni <= 0.0){
-						aux_Ni = 0.0;
+			actuators_data.Na = 0.0;
+			actuators_data.Ni = 0.0;
+			actuators_data.Q = output_T*C - actuators_data.Ni*S*(sensors_data.Ti - sensors_data.T) - actuators_data.Na*S*(80-sensors_data.T) - (sensors_data.T-sensors_data.Ta)/R;
+			if (actuators_data.Q >= 1000000.0){
+				actuators_data.Q = 1000000.0;
+				actuators_data.Na = (output_T*C - actuators_data.Ni*S*(sensors_data.Ti - sensors_data.T) - actuators_data.Q - (sensors_data.T-sensors_data.Ta)/R)/(S*(80-sensors_data.T));
+				if (actuators_data.Na >= 10.0){
+					actuators_data.Na = 10.0;
+					actuators_data.Ni = (output_T*C - actuators_data.Na*S*(80-sensors_data.T) - (sensors_data.T-sensors_data.Ta)/R - actuators_data.Q)/(S*(sensors_data.Ti - sensors_data.T));
+					if (actuators_data.Ni >= 100.0){
+						actuators_data.Ni = 100.0;
+					} else if(actuators_data.Ni <= 0.0){
+						actuators_data.Ni = 0.0;
 					}
 				}
 			}
 		}else if (output_T < 0.0){
-			aux_Q = 0.0;
-			aux_Na = 0.0;
-			aux_Ni = (output_T*C - Na*S*(80-T) - (T-Ta)/R - Q)/(S*(Ti - T));
-			if (aux_Ni >= 100.0){
-				aux_Ni = 100.0;
-			} else if(aux_Ni <= 0.0){
-				aux_Ni = 0.0;
+			actuators_data.Q = 0.0;
+			actuators_data.Na = 0.0;
+			actuators_data.Ni = (output_T*C - actuators_data.Na*S*(80-sensors_data.T) - (sensors_data.T-sensors_data.Ta)/R - actuators_data.Q)/(S*(sensors_data.Ti - sensors_data.T));
+			if (actuators_data.Ni >= 100.0){
+				actuators_data.Ni = 100.0;
+			} else if(actuators_data.Ni <= 0.0){
+				actuators_data.Ni = 0.0;
 			}
 		}else{
-			aux_Q = 0.0;
-			aux_Na = 0.0;
-			aux_Ni = 0.0;
+			actuators_data.Q = 0.0;
+			actuators_data.Na = 0.0;
+			actuators_data.Ni = 0.0;
 		}
 		
-		// Sendint actuators commands to the boiler and assigning it to global variables
-		// lock socket
-		pthread_mutex_lock(&socket_mutex);
-		Q = actuate("aq-\0", aux_Q, local_socket, dest_address);
-		Na = actuate("ana\0", aux_Na, local_socket, dest_address);
-		Ni = actuate("ani\0", aux_Ni, local_socket, dest_address);
-		// unlock socket
-		pthread_mutex_unlock(&socket_mutex);
+		// send actuation command to the boiler
+		setTemperatureActuators(&actuators_data);
+		// update actuator global struct
+		updateActuatorsTemperatureGlobalVar(&actuators, &actuators_data);
 
 		// Updating timespec
-		tp_T.tv_nsec += periodo_ns_T;
+		tp_T.tv_nsec += period_ns_T;
 
 		while (tp_T.tv_nsec >= nsec_per_sec) {
 			tp_T.tv_nsec -= nsec_per_sec;
@@ -203,72 +183,74 @@ void temperatureController(){
 }
 
 
-/* Height proportional controller
-with period of 70ms*/
-void heightController(){
-
+/* Height proportional controller with period of 70ms*/
+void heightController()
+{
 	// Initializing controller period
-	long int periodo_ns_H = 70000000;
-	float periodo_s_H = 0.07;
+	long int period_ns_H = 70000000;
+	float period_s_H = 0.07;
 
 	// Defining and initializing controller timespec
 	struct timespec tp_H;
 	tp_H.tv_sec = t.tv_sec + 1;
 	tp_H.tv_nsec = t.tv_nsec;
 
+	// Initializing aux variables so it doesn't have to deal with protected variables
+	struct sensors_struct sensors_data = {0.0, 0.0, 0.0, 0.0, 0.0};
+	struct actuators_struct actuators_data = {0.0, 0.0, 0.0, 0.0};
+	struct reference_struct reference_data = {0.0, 0.0};
+
+	// Varibles for controller
+    const float Kp_H = 4.0;
+	float output_H;
+
 	while(1){
+
+		// Get current time
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_H, NULL);
-		// reading sensors values and assign it to the global variables
-		// lock socket
-		pthread_mutex_lock(&socket_mutex);
-		No = read_sensor("sno0", local_socket, dest_address);
-		H = read_sensor("sh-0", local_socket, dest_address);
-		// unlock socket
-		pthread_mutex_unlock(&socket_mutex);
 
-		// Controller
-    	const float Kp_H = 3;				// proportional gain
-		float output_H = Kp_H*(H_ref - H);
+		// Read sensor data and put it into the aux struct
+		getSensorData(&sensors_data);
+		// Update global sensor struct
+		updateSensorsGlobalVar(&sensors, &sensors_data);
 
-		// Defining aux variables so it doesn't have to deal with protected variables
-		float aux_Ni;
-		float aux_Na;
-		float aux_Nf;
+		/* Controller */
+		// copy reference data into aux struct
+		copyReference(&reference_data, &reference);
+
+		// gain*error
+		output_H = Kp_H*(reference_data.H_ref - sensors_data.H);
 
 		// Calculating actuators values
 		if (output_H > 0){
-			aux_Na = 0;
-			aux_Nf = 0;
-			aux_Ni = output_H*B*P - Na + No + Nf;
-			if (aux_Ni >= 100.0){
-				aux_Ni = 100.0;
-				aux_Na = output_H*B*P - aux_Ni + No + Nf;
-				if (aux_Na >= 10.0)
-					aux_Na = 10.0;
+			actuators_data.Na = 0;
+			actuators_data.Nf = 0;
+			actuators_data.Ni = output_H*B*P - actuators_data.Na + sensors_data.No + actuators_data.Nf;
+			if (actuators_data.Ni >= 100.0){
+				actuators_data.Ni = 100.0;
+				actuators_data.Na = output_H*B*P - actuators_data.Ni + sensors_data.No + actuators_data.Nf;
+				if (actuators_data.Na >= 10.0)
+					actuators_data.Na = 10.0;
 			}
 		}else if (output_H < 0){
-			aux_Ni = 0;
-			aux_Na = 0;
-			aux_Nf = -output_H*B*P + Ni + Na + No;
-			if (aux_Nf >= 100.0)
-				aux_Nf = 100.0;
+			actuators_data.Ni = 0;
+			actuators_data.Na = 0;
+			actuators_data.Nf = -output_H*B*P + actuators_data.Ni + actuators_data.Na + sensors_data.No;
+			if (actuators_data.Nf >= 100.0)
+				actuators_data.Nf = 100.0;
 		}else{
-			aux_Ni = 0;
-			aux_Na = 0;
-			aux_Nf = 0;
+			actuators_data.Ni = 0;
+			actuators_data.Na = 0;
+			actuators_data.Nf = 0;
 		}
 
-		// Sendint actuators commands to the boiler and assigning it to global variables
-		// lock socket
-		pthread_mutex_lock(&socket_mutex);
-		Ni = actuate("ani\0", aux_Ni, local_socket, dest_address);
-		Na = actuate("ana\0", aux_Na, local_socket, dest_address);
-		Nf = actuate("anf\0", aux_Nf, local_socket, dest_address);
-		// unlock socket
-		pthread_mutex_unlock(&socket_mutex);
+		// send actuation command to the boiler
+		setHeightActuators(&actuators_data);
+		// update actuator global struct
+		updateActuatorsHeightGlobalVar(&actuators, &actuators_data);
 
 		// Updating timespec
-		tp_H.tv_nsec += periodo_ns_H;
+		tp_H.tv_nsec += period_ns_H;
 
 		while (tp_H.tv_nsec >= nsec_per_sec) {
 			tp_H.tv_nsec -= nsec_per_sec;
@@ -278,20 +260,20 @@ void heightController(){
 }
 
 
-// Let the user enter the desired reference values
-void getReferenceValues(){
+/* Let the user enter the desired reference values */
+void getReferenceValues()
+{
+	// Initializing aux struct so it doesn't have to deal with protected variables
+	struct reference_struct reference_data = {0.0, 0.0};
 
 	while(1){
 		if (getchar() == '\n') {
-			// lock console
-			pthread_mutex_lock(&console_mutex);
-			printf("\e[1;1H\e[2J");
-			printf("Informe a temperatura de referencia (ºC): \n");
-			scanf("%f", &T_ref);
-			printf("Informe o nível de referência (m): \n");
-			scanf("%f", &H_ref);
-			// unlock console
-			pthread_mutex_unlock(&console_mutex);
+
+			// read referece values from keyboard
+			consoleGetReferenceValues(&reference_data);
+			// update actuator global struct
+			updateReferenceGlobalVar(&reference, &reference_data);	
+
 			getchar();
 			sleep(1);
 		}
@@ -299,45 +281,37 @@ void getReferenceValues(){
 }
 
 
-/* Alarm for temperature higher than 30ºC
-with period of 10ms */
+/* Alarm for temperature higher than 30ºC with period of 10ms */
 void temperatureAlarm()
 {
 	// Initializing controller period
-	long int periodo_ns_A = 10000000;
-	float periodo_s_A = 0.01;
+	long int period_ns_A = 10000000;
+	float period_s_A = 0.01;
 
 	// Defining and initializing controller timespec
 	struct timespec tp_A;
 	tp_A.tv_sec = t.tv_sec + 1;
 	tp_A.tv_nsec = t.tv_nsec;
 
+	// Initializing aux struct so it doesn't have to deal with protected variables
+	struct sensors_struct sensors_data = {0.0, 0.0, 0.0, 0.0, 0.0};
+
 	while(1){
+		//get current time
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_A, NULL);
 
-		// reading temperature
-		//lock socket
-		pthread_mutex_lock(&socket_mutex);
-		T = read_sensor("st-0", local_socket, dest_address);
-		pthread_mutex_unlock(&socket_mutex);
-		//unlock socket
+		// reading sensor data
+		getSensorData(&sensors_data);
+		// updating global sensor struct
+		updateSensorsGlobalVar(&sensors, &sensors_data);
 
-		if(T >= 30.0){
+		if(sensors_data.T >= 30.0){
 			// print alarm
-			// lock console
-			pthread_mutex_lock(&console_mutex);
-			printf("\e[1;1H\e[2J");
-			printf("\n\n\n\n\n");
-			printf("---------                 !!! ALARM !!!                 ---------\n");
-			printf("---------    Current Temperature is higher than 30ºC    ---------\n");
-			printf("---------    Current Temperature is %f           ---------\n", T);
-			printf("\n\n\n\n\n");
-			// unlock console
-			pthread_mutex_unlock(&console_mutex);
+			consoleAlarm(sensors_data.T);
 		};
 	
 		// Updating timespec
-		tp_A.tv_nsec += periodo_ns_A;
+		tp_A.tv_nsec += period_ns_A;
 
 		while (tp_A.tv_nsec >= nsec_per_sec) {
 			tp_A.tv_nsec -= nsec_per_sec;
@@ -347,25 +321,34 @@ void temperatureAlarm()
 }
 
 
-// Send values to double buffer approx one time per second
-void sendToBuffer(){
-	
+/* Send values to double buffer approx one time per second */
+void sendToBuffer()
+{
 	//Defining current time in seconds
 	time_t seconds;
+
+	// Initializing aux struct so it doesn't have to deal with protected variables
+	struct sensors_struct sensors_data = {0.0, 0.0, 0.0, 0.0, 0.0};
+	struct actuators_struct actuators_data = {0.0, 0.0, 0.0, 0.0};
+	struct reference_struct reference_data = {0.0, 0.0};
 
 	while(1){
 		// Get current time in seconds
    		seconds = time(NULL);
-
-		insertInBuffer(seconds, T, T_ref, H, H_ref, Q, Ta, Ti, Ni, No, Nf, Na);
+		
+		// copy all data to aux structs
+		copyAllData(&sensors, &actuators, &reference, &sensors_data, &actuators_data, &reference_data);
+		// insert data values in buffer
+		insertInBuffer(seconds, &sensors_data, &actuators_data, &reference_data);
 		
 		sleep(1);
 	}
 }
 
-//Write values into log file
-void writeIntoFile(){
 
+/* Write values into log file */
+void writeIntoFile()
+{
 	// variables related to the file
 	FILE *fp;
 	char filename[14] = "./log/log.csv";
