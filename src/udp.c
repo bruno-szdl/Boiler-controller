@@ -53,12 +53,12 @@ void send_msg(int local_socket, struct sockaddr_in dest_address, char *msg){
 
 
 // Receive msg from server
-int get_msg(int local_socket, char *buffer, int BUFFER_SIZE)
+int get_msg(int local_socket, char *buffer, int buffer_size)
 {
 	int received_bytes;
 
 	// Wait for server's response
-	received_bytes = recvfrom(local_socket, buffer, BUFFER_SIZE, 0, NULL, 0);
+	received_bytes = recvfrom(local_socket, buffer, buffer_size, 0, NULL, 0);
 	if (received_bytes < 0){
 		perror("recvfrom");
 	}
