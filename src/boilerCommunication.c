@@ -1,9 +1,8 @@
 #include "../include/boilerCommunication.h"
 
-
 // Get only numbers from msg
-char * getMsgNumbers(char *s){
-
+char * getMsgNumbers(char *s)
+{
 	size_t n = 3;
     char *src = s;
 
@@ -17,8 +16,8 @@ char * getMsgNumbers(char *s){
 
 
 // Communicate with the boiler using UDP functions (send and receive msg)
-float communicate(char *msg, int local_socket, struct sockaddr_in dest_address){
-
+float communicate(char *msg, int local_socket, struct sockaddr_in dest_address)
+{
 	char value[1000];
 	int nrec;
 
@@ -37,14 +36,15 @@ float communicate(char *msg, int local_socket, struct sockaddr_in dest_address){
 
 
 // Read sensor values from the boiler
-float read_sensor(char *msg, int local_socket, struct sockaddr_in dest_address){
+float read_sensor(char *msg, int local_socket, struct sockaddr_in dest_address)
+{
 	return communicate(msg, local_socket, dest_address);
 };
 
 
 // Send actuator commands to the boiler
-float actuate(char *sensor_id, float value, int local_socket, struct sockaddr_in dest_address){
-
+float actuate(char *sensor_id, float value, int local_socket, struct sockaddr_in dest_address)
+{
 	char char_value[10];
 	sprintf(char_value, "%.1f", value);
 
