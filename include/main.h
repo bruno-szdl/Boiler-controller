@@ -1,9 +1,11 @@
 #include <time.h>
-#include <sys/time.h>
-#include <stdio.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <string.h>
+
+#include "variables.h"
+#include "monitorSocket.h"
+#include "monitorVariables.h"
+#include "monitorBuffer.h"
+#include "monitorConsole.h"
 
 //Defining Time constants
 const long int nsec_per_sec;        /* The number of nsecs per sec. */
