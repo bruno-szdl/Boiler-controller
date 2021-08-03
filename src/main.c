@@ -1,8 +1,5 @@
 // Include libraries
 #include "../include/main.h"
-#include "../include/udp.h"
-#include "../include/boilerCommunication.h"
-#include "../include/monitor.h"
 
 // Initializing Time constants
 const long int nsec_per_sec = 1000000000L; /* The number of nsecs per sec. */
@@ -32,14 +29,10 @@ const float B = 4.0;                       // Área da base do recipiente [4 m2]
 const float P = 1000.0;                    // Peso específico da água [1000 Kg/m3]
 const float S = 4184.0;                    // Calor específico da água [4184 Joule/Kg.Celsius]
 
-// Initializing mutexes
-pthread_mutex_t socket_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t console_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
-// Main function
-int main(int argc, char *argv[]){
-
+/* Main function */
+int main(int argc, char *argv[])
+{
 	// Check if args are properly set
 	if (argc < 3) { 
 		fprintf(stderr,"Uso: udpcliente endereço porta \n");
