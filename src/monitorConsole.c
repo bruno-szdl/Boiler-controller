@@ -7,20 +7,20 @@ void consoleData(struct sensors_struct *sensors_data, struct actuators_struct *a
 	pthread_mutex_lock(&console_mutex);
 	printf("\e[1;1H\e[2J");
 	printf("Sensores\n");
-	printf("\tValor de Ta: %f (ºC)\n", sensors_data->Ta);
-	printf("\tValor de T: %f (ºC)\n", sensors_data->T);
-	printf("\tValor de Ti: %f (ºC)\n", sensors_data->Ti);
-	printf("\tValor de No: %f (kg/s)\n", sensors_data->No);
-	printf("\tValor de H: %f (m)\n\n", sensors_data->H);
+	printf("\tTa: %f (ºC)\n", sensors_data->Ta);
+	printf("\tT: %f (ºC)\n", sensors_data->T);
+	printf("\tTi: %f (ºC)\n", sensors_data->Ti);
+	printf("\tNo: %f (kg/s)\n", sensors_data->No);
+	printf("\tH: %f (m)\n\n", sensors_data->H);
 	printf("Atuadores\n");
-	printf("\tValor de Q: %f (J/s)\n", actuators_data->Q);
-	printf("\tValor de Ni: %f (kg/s)\n", actuators_data->Ni);
-	printf("\tValor de Na: %f (kg/s)\n", actuators_data->Na);
-	printf("\tValor de Nf: %f (kg/s)\n\n", actuators_data->Nf);
-	printf("Os valores atuais de referência são\n");
+	printf("\tQ: %f (J/s)\n", actuators_data->Q);
+	printf("\tNi: %f (kg/s)\n", actuators_data->Ni);
+	printf("\tNa: %f (kg/s)\n", actuators_data->Na);
+	printf("\tNf: %f (kg/s)\n\n", actuators_data->Nf);
+	printf("Referência\n");
 	printf("\tT_ref: %f (ºC)\n", reference_data->T_ref);
 	printf("\tH_ref: %f (m)\n\n", reference_data->H_ref);
-	printf("Para alterar os valores aperte ENTER\n");
+	printf("Para alterar os valores de referência aperte ENTER\n");
 	pthread_mutex_unlock(&console_mutex);
 }
 
@@ -30,7 +30,7 @@ void consoleGetReferenceValues(struct reference_struct *reference_data)
 	printf("\e[1;1H\e[2J");
 
 	do{
-	printf("Informe a temperatura de referencia (ºC): \n");
+	printf("Informe a temperatura de referência (ºC): \n");
 	scanf("%f", &reference_data->T_ref);
 	if (reference_data->T_ref > 30.0)
 		printf("A temperatura não pode ser maior que 30ºC\n\n");
