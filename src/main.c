@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	getchar();
 
 	// Defining threads
-	pthread_t t1, t2, t3, t4, t5, t6, t7;
+	pthread_t t1, t2, t3, t4, t5, t6, t7, t8;
 
 	// Creating threads
 	pthread_create(&t1, NULL, (void *) printSensorData, NULL);
@@ -57,8 +57,9 @@ int main(int argc, char *argv[])
 	pthread_create(&t3, NULL, (void *) heightController, NULL);
 	pthread_create(&t4, NULL, (void *) getReferenceValues, NULL);
 	pthread_create(&t5, NULL, (void *) temperatureAlarm, NULL);
-	pthread_create(&t6, NULL, (void *) sendToBuffer, NULL);
-	pthread_create(&t7, NULL, (void *) writeIntoFile, NULL);
+	pthread_create(&t6, NULL, (void *) heightAlarm, NULL);
+	pthread_create(&t7, NULL, (void *) sendToBuffer, NULL);
+	pthread_create(&t8, NULL, (void *) writeIntoFile, NULL);
 
 	// Joining threads
 	pthread_join(t1, NULL);
@@ -68,6 +69,7 @@ int main(int argc, char *argv[])
     pthread_join(t5, NULL);
     pthread_join(t6, NULL);
     pthread_join(t7, NULL);
+    pthread_join(t8, NULL);
 }
 
 
@@ -302,7 +304,46 @@ void temperatureAlarm()
 
 		if(sensors_data.T > 30.0){
 			// print alarm
-			consoleAlarm(sensors_data.T);
+			consoleTemperatureAlarm(sensors_data.T);
+		};
+	
+		// Updating timespec
+		tp_A.tv_nsec += period_ns_A;
+
+		while (tp_A.tv_nsec >= nsec_per_sec) {
+			tp_A.tv_nsec -= nsec_per_sec;
+			tp_A.tv_sec++;
+		}		
+	}
+}
+
+
+/* Alarm for height higher than 3m or lower than 0.1m with period of 10ms */
+void heightAlarm()
+{
+	// Initializing controller period
+	long int period_ns_A = 10000000;
+
+	// Defining and initializing controller timespec
+	struct timespec tp_A;
+	tp_A.tv_sec = t.tv_sec + 1;
+	tp_A.tv_nsec = t.tv_nsec;
+
+	// Initializing aux struct so it doesn't have to deal with protected variables
+	struct sensors_struct sensors_data = {0.0, 0.0, 0.0, 0.0, 0.0};
+
+	while(1){
+		//get current time
+		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_A, NULL);
+
+		// reading sensor data
+		getSensorData(&sensors_data);
+		// updating global sensor struct
+		updateSensorsGlobalVar(&sensors, &sensors_data);
+
+		if(sensors_data.H > 3.0 || sensors_data.H < 0.1){
+			// print alarm
+			consoleHeightAlarm(sensors_data.H);
 		};
 	
 		// Updating timespec

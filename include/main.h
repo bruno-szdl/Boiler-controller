@@ -27,5 +27,6 @@ void temperatureController();       // Temperature controller
 void heightController();            // Height controller
 void printSensorData();             // Print sensor data on console
 void temperatureAlarm();            // Temperature alarm
+void heightAlarm();                 // Height alarm
 void sendToBuffer();                // Sends values to buffer
 void writeIntoFile();               // Write values into file
