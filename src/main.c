@@ -300,7 +300,7 @@ void temperatureAlarm()
 		// updating global sensor struct
 		updateSensorsGlobalVar(&sensors, &sensors_data);
 
-		if(sensors_data.T >= 30.0){
+		if(sensors_data.T > 30.0){
 			// print alarm
 			consoleAlarm(sensors_data.T);
 		};
