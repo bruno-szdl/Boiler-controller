@@ -2,9 +2,7 @@
 #include "../include/main.h"
 
 // Initializing Time constants
-const long int nsec_per_sec = 1000000000L; /* The number of nsecs per sec. */
-const long int usec_per_sec = 1000000L;    /* The number of usecs per sec. */
-const int nsec_per_usec = 1000;            /* The number of nsecs per usec. */
+const long int nsec_per_sec = 1000000000L; 		// The number of nsecs per sec.
 
 // Initializing sensors variables
 struct sensors_struct sensors = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -16,10 +14,10 @@ struct actuators_struct actuators = {0.0, 0.0, 0.0, 0.0};
 struct reference_struct reference = {20.0, 2.0};
 
 // Initializing const variables
-const float R = 0.001;                     // Resistência térmica do isolamento (2mm madeira) [0.001 Grau / (Joule/segundo)]
-const float B = 4.0;                       // Área da base do recipiente [4 m2]
-const float P = 1000.0;                    // Peso específico da água [1000 Kg/m3]
-const float S = 4184.0;                    // Calor específico da água [4184 Joule/Kg.Celsius]
+const float R = 0.001;                     		// Resistência térmica do isolamento (2mm madeira) [0.001 Grau / (Joule/segundo)]
+const float B = 4.0;                       		// Área da base do recipiente [4 m2]
+const float P = 1000.0;                    		// Peso específico da água [1000 Kg/m3]
+const float S = 4184.0;                    		// Calor específico da água [4184 Joule/Kg.Celsius]
 
 
 /* Main function */
@@ -96,7 +94,6 @@ void temperatureController()
 {
 	// Initializing controller period
 	long int period_ns_T = 50000000;
-	float period_s_T = 0.05;
 
 	// Defining and initializing controller timespec
 	struct timespec tp_T;
@@ -188,7 +185,6 @@ void heightController()
 {
 	// Initializing controller period
 	long int period_ns_H = 70000000;
-	float period_s_H = 0.07;
 
 	// Defining and initializing controller timespec
 	struct timespec tp_H;
@@ -286,7 +282,6 @@ void temperatureAlarm()
 {
 	// Initializing controller period
 	long int period_ns_A = 10000000;
-	float period_s_A = 0.01;
 
 	// Defining and initializing controller timespec
 	struct timespec tp_A;
