@@ -119,13 +119,13 @@ void temperatureController()
 		// Get current time
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp_T, NULL);
 
-		// copy reference data into aux struct
-		copyReference(&reference_data, &reference);
-
 		// Read sensor data and put it into the aux struct
 		getSensorData(&sensors_data);
 		// Update global sensor struct
 		updateSensorsGlobalVar(&sensors, &sensors_data);
+
+		// Copy all data to aux structs
+		copyAllData(&sensors, &actuators, &reference, &sensors_data, &actuators_data, &reference_data);
 
 		// gain*error
 		output_T = Kp_T*(reference_data.T_ref - sensors_data.T);
@@ -135,8 +135,6 @@ void temperatureController()
 
 		// Calculating actuators values
 		if (output_T > 0.0){
-			actuators_data.Na = 0.0;
-			actuators_data.Ni = 0.0;
 			actuators_data.Q = output_T*C - actuators_data.Ni*S*(sensors_data.Ti - sensors_data.T) - actuators_data.Na*S*(80-sensors_data.T) - (sensors_data.T-sensors_data.Ta)/R;
 			if (actuators_data.Q >= 1000000.0){
 				actuators_data.Q = 1000000.0;
@@ -152,18 +150,16 @@ void temperatureController()
 				}
 			}
 		}else if (output_T < 0.0){
-			actuators_data.Q = 0.0;
-			actuators_data.Na = 0.0;
 			actuators_data.Ni = (output_T*C - actuators_data.Na*S*(80-sensors_data.T) - (sensors_data.T-sensors_data.Ta)/R - actuators_data.Q)/(S*(sensors_data.Ti - sensors_data.T));
 			if (actuators_data.Ni >= 100.0){
 				actuators_data.Ni = 100.0;
+				actuators_data.Q = 0.0;
+				actuators_data.Na = 0.0;
 			} else if(actuators_data.Ni <= 0.0){
 				actuators_data.Ni = 0.0;
+				actuators_data.Q = 0.0;
+				actuators_data.Na = 0.0;
 			}
-		}else{
-			actuators_data.Q = 0.0;
-			actuators_data.Na = 0.0;
-			actuators_data.Ni = 0.0;
 		}
 		
 		// send actuation command to the boiler
@@ -212,9 +208,8 @@ void heightController()
 		// Update global sensor struct
 		updateSensorsGlobalVar(&sensors, &sensors_data);
 
-		/* Controller */
-		// copy reference data into aux struct
-		copyReference(&reference_data, &reference);
+		// Copy all data to aux structs
+		copyAllData(&sensors, &actuators, &reference, &sensors_data, &actuators_data, &reference_data);
 
 		// gain*error
 		output_H = Kp_H*(reference_data.H_ref - sensors_data.H);
@@ -227,19 +222,18 @@ void heightController()
 			if (actuators_data.Ni >= 100.0){
 				actuators_data.Ni = 100.0;
 				actuators_data.Na = output_H*B*P - actuators_data.Ni + sensors_data.No + actuators_data.Nf;
-				if (actuators_data.Na >= 10.0)
+				if (actuators_data.Na >= 10.0){
 					actuators_data.Na = 10.0;
+					actuators.Nf = 0.0;
+				}
 			}
 		}else if (output_H < 0){
-			actuators_data.Ni = 0;
-			actuators_data.Na = 0;
 			actuators_data.Nf = -output_H*B*P + actuators_data.Ni + actuators_data.Na + sensors_data.No;
-			if (actuators_data.Nf >= 100.0)
+			if (actuators_data.Nf >= 100.0){
 				actuators_data.Nf = 100.0;
-		}else{
-			actuators_data.Ni = 0;
-			actuators_data.Na = 0;
-			actuators_data.Nf = 0;
+				actuators_data.Ni = 0;
+				actuators_data.Na = 0;
+			}
 		}
 
 		// send actuation command to the boiler
