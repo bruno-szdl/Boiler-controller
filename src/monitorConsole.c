@@ -35,15 +35,31 @@ void consoleGetReferenceValues(struct reference_struct *reference_data)
 	pthread_mutex_unlock(&console_mutex);
 }
 
-void consoleAlarm(double T)
+void consoleTemperatureAlarm(double T)
 {
 	pthread_mutex_lock(&console_mutex);
 	printf("\e[1;1H\e[2J");
 	printf("\n\n\n\n\n");
-	printf("---------                 !!! ALARM !!!                 ---------\n");
-	printf("---------    Current Temperature is higher than 30ºC    ---------\n");
-	printf("---------    Current Temperature is %f           ---------\n", T);
+	printf("---------                 !!! ALARM !!!            ---------\n");
+	printf("---------    Temperatura atual é maior que 30ºC    ---------\n");
+	printf("---------    Temperatura atual é %f ºC   ---------\n", T);
 	printf("\n\n\n\n\n");
+	pthread_mutex_unlock(&console_mutex);
+}
+
+void consoleHeightAlarm(double H)
+{
+	pthread_mutex_lock(&console_mutex);
+	printf("\e[1;1H\e[2J");
+	printf("\n\n\n\n\n");
+	printf("---------                 !!! ALARM !!!              ---------\n");
+	if (H > 3.0){
+	printf("---------    O nível da água atual é maior que 3m    ---------\n");
+	printf("---------    O nível da água atual é %f m      ---------\n", H);
+	} else if (H < 0.1){
+		printf("---------    O nível da água atual é menor que 0.1m  ---------\n");
+		printf("---------    O nível da água atual é %f m      ---------\n", H);
+	}
 	pthread_mutex_unlock(&console_mutex);
 }
 

@@ -11,6 +11,7 @@ pthread_mutex_t console_mutex;
 
 void consoleData(struct sensors_struct *sensors_data, struct actuators_struct *actuators_data, struct reference_struct *reference_data);
 void consoleGetReferenceValues(struct reference_struct *reference_data);
-void consoleAlarm(double T);
+void consoleTemperatureAlarm(double T);
+void consoleHeightAlarm(double H);
 
 #endif
