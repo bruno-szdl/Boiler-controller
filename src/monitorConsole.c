@@ -28,10 +28,21 @@ void consoleGetReferenceValues(struct reference_struct *reference_data)
 {
 	pthread_mutex_lock(&console_mutex);
 	printf("\e[1;1H\e[2J");
+
+	do{
 	printf("Informe a temperatura de referencia (ºC): \n");
 	scanf("%f", &reference_data->T_ref);
-	printf("Informe o nível de referência (m): \n");
+	if (reference_data->T_ref > 30.0)
+		printf("A temperatura não pode ser maior que 30ºC\n\n");
+	} while(reference_data->T_ref > 30.0);
+
+	do{
+	printf("\nInforme o nível de referência (m): \n");
 	scanf("%f", &reference_data->H_ref);
+	if (reference_data->H_ref > 3.0 || reference_data->H_ref < 0.1)
+		printf("O nível da água deve estar entre 0.1m e 3m para não danificar a caldeira\n\n");
+	} while(reference_data->H_ref > 3.0 || reference_data->H_ref < 0.1);
+
 	pthread_mutex_unlock(&console_mutex);
 }
 
