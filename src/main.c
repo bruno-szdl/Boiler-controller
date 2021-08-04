@@ -160,6 +160,10 @@ void temperatureController()
 				actuators_data.Q = 0.0;
 				actuators_data.Na = 0.0;
 			}
+		} else {
+			actuators_data.Ni = 0.0;
+			actuators_data.Q = 0.0;
+			actuators_data.Na = 0.0;
 		}
 		
 		// send actuation command to the boiler
@@ -234,6 +238,10 @@ void heightController()
 				actuators_data.Ni = 0;
 				actuators_data.Na = 0;
 			}
+		} else {
+			actuators_data.Nf = 100.0;
+			actuators_data.Ni = 0;
+			actuators_data.Na = 0;
 		}
 
 		// send actuation command to the boiler
